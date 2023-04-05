@@ -1,0 +1,26 @@
+- hosts: vm3
+  tasks:
+    - name: Copy Docker image backposts to remote host
+      become: yes
+      copy:
+        src: /home/dunice/projects/terra/nginx
+        dest: /usr/
+        
+    - name: Create a volume
+      become: yes
+      docker_volume:
+        name: volume_one
+          
+    - name: Launch Nginx container
+      become: yes
+      docker_container:
+        name: dbposts
+        image: skachan/nginximage:latest
+        volumes:
+          - /usr/nginx/statics/publicgoods:/usr/share/nginx/goods
+          - /usr/nginx/statics/publicposts:/usr/share/nginx/posts
+          - /usr/nginx/configs/nginx.conf:/etc/nginx/nginx.conf
+          - /usr/nginx/configs/subconf:/etc/nginx/conf.d
+        ports:
+          - "443:443"
+        state: started

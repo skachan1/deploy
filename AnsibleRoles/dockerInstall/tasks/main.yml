@@ -1,0 +1,8 @@
+---
+# tasks file for base_setting
+
+- name: Installing base utilities
+  include_tasks: tasks/install_base_utility.yml
+
+- name: Setting up iptables and saving the rules
+  include_tasks: tasks/setting_iptables.yml

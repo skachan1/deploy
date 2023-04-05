@@ -1,0 +1,55 @@
+---
+- name: Accept all packages on 22 port
+  iptables:
+    table: filter
+    chain: INPUT
+    protocol: tcp
+    destination_port: 22
+    jump: ACCEPT
+  
+- name: Accept all tcp-packages on 80 port
+  iptables:
+    table: filter
+    chain: INPUT
+    protocol: tcp
+    destination_port: 80
+    jump: ACCEPT
+
+- name: Accept all tcp-packages on 443 port
+  iptables:
+    table: filter
+    chain: INPUT
+    protocol: tcp
+    destination_port: 443
+    jump: ACCEPT
+
+- name: Accept all tcp-packages on 3128 port
+  iptables:
+    table: filter
+    chain: INPUT
+    protocol: tcp
+    destination_port: 3128
+    jump: ACCEPT
+
+- name: Accept all tcp-packages on 123 port
+  iptables:
+    table: filter
+    chain: INPUT
+    protocol: tcp
+    destination_port: 80
+    jump: ACCEPT
+
+- name: Accept ICMP echo-request packages
+  iptables:
+    table: filter
+    chain: INPUT
+    protocol: icmp
+    icmp_type: echo-request
+    jump: ACCEPT
+
+- name: Policy for INPUT           
+  iptables:
+    chain: INPUT
+    policy: DROP
+  notify:
+    - save rules

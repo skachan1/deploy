@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e
+
+printf "[all]\n"
+
+printf "vm1   ansible_host="
+terraform output -raw vm1_private_ip
+printf " ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %%h:%%p -q ubuntu@$(terraform output -raw vm3_public_ip)\"'"
+printf "\n"
+
+printf "vm2   ansible_host="
+terraform output -raw vm2_private_ip
+printf " ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %%h:%%p -q ubuntu@$(terraform output -raw vm3_public_ip)\"'"
+printf "\n"
+
+printf "vm3   ansible_host="
+terraform output -raw vm3_public_ip
+printf "\n"
+
+printf "\n[all:vars]\n"
+printf "ansible_user=ubuntu\n"
+printf "\n"
+
+cat << EOF
+[private]
+vm1
+vm2
+
+[public]
+vm3
+EOF

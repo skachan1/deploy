@@ -1,0 +1,5 @@
+---
+
+- hosts: private
+  roles:
+    - role: base_setting

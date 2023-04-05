@@ -1,0 +1,77 @@
+- hosts: localhost
+  tasks:
+    - name: Download Docker dependencies
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/{{ item }}
+        dest: /tmp/{{ item }}
+      with_items:
+        - containerd.io_1.4.4-1_amd64.deb
+        - docker-ce-cli_19.03.14~3-0~ubuntu-focal_amd64.deb
+        - docker-ce_19.03.14~3-0~ubuntu-focal_amd64.deb
+
+- hosts: private
+  strategy: free
+  tasks:
+    - name: Copy Docker dependencies to remote host
+      copy:
+        src: /tmp/{{ item }}
+        dest: /tmp/{{ item }}
+      with_items:
+        - containerd.io_1.4.4-1_amd64.deb
+        - docker-ce-cli_19.03.14~3-0~ubuntu-focal_amd64.deb
+        - docker-ce_19.03.14~3-0~ubuntu-focal_amd64.deb
+
+    - name: Install Docker dependencies on remote host
+      apt:
+        deb: /tmp/{{ item }}
+      become: yes
+      with_items:
+        - containerd.io_1.4.4-1_amd64.deb
+        - docker-ce-cli_19.03.14~3-0~ubuntu-focal_amd64.deb
+        - docker-ce_19.03.14~3-0~ubuntu-focal_amd64.deb
+
+    - name: Start Docker service on remote host
+      service:
+        name: docker
+        state: started
+        
+    - name: Add user to docker group
+      become: yes
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+        
+- hosts: public
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name: ['apt-transport-https', 'ca-certificates', 'curl', 'gnupg-agent', 'software-properties-common']
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+        
+    - name: Add user to docker group
+      become: yes
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes

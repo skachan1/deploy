@@ -1,0 +1,14 @@
+[all]
+vm1 ansible_host=10.128.0.15 ansible_ssh_common_args='-o ProxyCommand="ssh -W %h:%p -q ubuntu@178.154.200.203"'
+vm2 ansible_host=10.128.0.23 ansible_ssh_common_args='-o ProxyCommand="ssh -W %h:%p -q ubuntu@178.154.200.203"'
+vm3 ansible_host=178.154.200.203
+
+[all:vars]
+ansible_user=ubuntu
+
+[private]
+vm1
+vm2
+
+[public]
+vm3

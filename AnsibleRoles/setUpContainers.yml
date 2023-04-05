@@ -1,0 +1,190 @@
+- hosts: localhost
+  tasks:
+    - name: Pull an image postgres
+      community.docker.docker_image:
+        name: postgres
+        tag: 15
+        source: pull
+        # Select platform for pulling. If not specified, will pull whatever docker prefers.
+    - name: Pull an image backposts
+      community.docker.docker_image:
+        name: skachan/posts
+        tag: latest
+        source: pull
+        
+    - name: Pull an image goodsapi
+      community.docker.docker_image:
+        name: skachan/goods
+        tag: latest
+        source: pull
+  
+    - name: Archive image postgres
+      docker_image:
+        name: postgres
+        tag: 15
+        archive_path: /home/dunice/projects/terra/images/postgres.tar
+        source: local
+
+    - name: Archive image posts
+      docker_image:
+        name: skachan/posts
+        tag: latest
+        archive_path: /home/dunice/projects/terra/images/posts.tar
+        source: local
+        
+    - name: Archive image goods
+      docker_image:
+        name: skachan/goods
+        tag: latest
+        archive_path: /home/dunice/projects/terra/images/goods.tar
+        source: local
+  
+- hosts: vm1
+  tasks:
+    - name: Copy Docker image backposts to remote host
+      copy:
+        src: /home/dunice/projects/terra/images/{{ item }}.tar
+        dest: /tmp/{{ item }}.tar
+      with_items:
+        - posts
+        - postgres
+
+    - name: Load Docker image on remote host
+      become: yes
+      docker_image:
+        source: load
+        load_path: /tmp/posts.tar
+        name: skachan/posts:latest
+        
+    - name: Load Docker image postgres on remote host
+      become: yes
+      docker_image:
+        source: load
+        load_path: /tmp/postgres.tar
+        name: postgres:15
+        
+    - name: Create Docker network
+      become: yes
+      docker_network:
+        name: my_network
+        
+    - name: Create a volume
+      become: yes
+      docker_volume:
+        name: volume_one
+          
+    - name: Launch PostgreSQL container
+      become: yes
+      docker_container:
+        name: dbposts
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: "admin"
+          POSTGRES_USER: "master"
+        volumes:
+          - volume_one:/var/lib/postgresql/data
+        ports:
+          - "5432:5432"
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -d master -U $${POSTGRES_USER}"]
+          interval: 5s
+          timeout: 10s
+          retries: 120
+        networks:
+          - name: my_network
+        state: started
+          
+    - name: Wait for first container to be healthy
+      become: yes
+      docker_container_info:
+        name: dbposts
+      register: dbposts_info
+      until: dbposts_info.container.State.Health.Status == 'healthy'
+      retries: 10
+      delay: 5
+      
+    - name: Launch second container
+      become: yes
+      docker_container:
+        name: posts
+        image: skachan/posts:latest
+        ports:
+          - "80:80"
+        networks:
+          - name: my_network
+        state: started
+
+- hosts: vm2
+  tasks:
+    - name: Copy Docker image backposts to remote host
+      copy:
+        src: /home/dunice/projects/terra/images/{{ item }}.tar
+        dest: /tmp/{{ item }}.tar
+      with_items:
+        - goods
+        - postgres
+
+    - name: Load Docker image on remote host
+      become: yes
+      docker_image:
+        source: load
+        load_path: /tmp/goods.tar
+        name: goods:latest
+        
+    - name: Load Docker image postgres on remote host
+      become: yes
+      docker_image:
+        source: load
+        load_path: /tmp/postgres.tar
+        name: postgres:15
+        
+    - name: Create Docker network
+      become: yes
+      docker_network:
+        name: my_network
+        
+    - name: Create a volume
+      become: yes
+      docker_volume:
+        name: volume_one
+          
+    - name: Launch PostgreSQL container
+      become: yes
+      docker_container:
+        name: dbposts
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: "admin"
+          POSTGRES_USER: "master"
+        volumes:
+          - volume_one:/var/lib/postgresql/data
+        ports:
+          - "5432:5432"
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -d master -U $${POSTGRES_USER}"]
+          interval: 5s
+          timeout: 10s
+          retries: 120
+        networks:
+          - name: my_network
+        state: started
+          
+    - name: Wait for first container to be healthy
+      become: yes
+      docker_container_info:
+        name: dbposts
+      register: dbposts_info
+      until: dbposts_info.container.State.Health.Status == 'healthy'
+      retries: 10
+      delay: 5
+      
+    - name: Launch second container
+      become: yes
+      docker_container:
+        name: goods
+        image: goods:latest
+        ports:
+          - "80:80"
+        networks:
+          - name: my_network
+        state: started
